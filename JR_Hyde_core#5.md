@@ -1,4 +1,5 @@
 # Core #5 Instructions #
+# JR Hyde #
 ## Objective ##
 - In this assignment, students will practice their fundamental dimensional modeling skills and ELT by creating and populating a star schema for a given business process and relational database.
 - For context, Core #3, #4, and #5 all build upon each other. 
@@ -68,7 +69,20 @@
     - In this file we will add all of the sources for Oliver's tables
 - Populate the code that we will use in this file below: 
 ```
+version: 2
 
+sources:
+  - name: oliver_landing
+    database: jrhyde
+    schema: oliverdw_manual
+    tables:
+      - name: dim_customer
+      - name: dim_date
+      - name: dim_employee
+      - name: dim_product
+      - name: dim_store
+      - name: dim_orders
+      - name: dim_order_line
 ```
 
 - If you need to make any changes to your Snowflake information in your dbt project you can change it by going to your dbt profile.yml file. You may need to change the schema. 
@@ -81,7 +95,22 @@
 - Create a new file inside of the oliver directory called `oliver_dim_customer.sql`
 - Populate the code that we will use in this file below: 
 ```
+{{ config(
+    materialized = 'table',
+    schema = 'dw_oliver'
+    )
+}}
 
+
+select
+CUSTOMER_ID as customer_key,
+CUSTOMER_ID,
+FIRST_NAME,
+LAST_NAME,
+EMAIL,
+PHONE_NUMBER,
+STATE
+FROM {{ source('oliver_landing', 'dim_customer') }}
 ```
 
 - Save the file, after you have done that, you can go to your terminal and type `dbt run -m oliver_dim_customer` to build the model.
@@ -91,7 +120,23 @@
 - Create a new file inside of the oliver directory called `oliver_dim_date.sql`
 - Populate the code that we will use in this file below: 
 ```
+{{ config(
+    materialized = 'table',
+    schema = 'dw_oliver'
+    )
+}}
 
+with cte_date as (
+{{ dbt_date.get_date_dimension("1900-01-01", "2050-12-31") }}
+)
+
+SELECT
+date_day as date_key,
+date_day as date_id,
+month_of_year as month,
+year_number,
+quarter_of_year as quarter
+from cte_date
 ```
 
 - Save the file, after you have done that, you can go to your terminal and type `dbt run -m oliver_dim_date` to build the model. Go to Snowflake to see the newly created table!
@@ -100,7 +145,23 @@
 - Create a new file inside of the oliver directory called `oliver_dim_employee.sql`
 - Populate the code that we will use in this file below: 
 ```
+{{ config(
+    materialized = 'table',
+    schema = 'dw_oliver'
+    )
+}}
 
+
+select
+EMPLOYEE_ID as EMPLOYEE_KEY,
+EMPLOYEE_ID,
+FIRST_NAME,
+LAST_NAME,
+EMAIL,
+PHONE_NUMBER,
+HIRE_DATE,
+POSITION
+FROM {{ source('oliver_landing', 'dim_employee') }}
 ```
 
 - Save the file and build the model. Go to Snowflake to see the newly created table! 
@@ -111,7 +172,20 @@
 
 
 ```
+{{ config(
+    materialized = 'table',
+    schema = 'dw_oliver'
+    )
+}}
 
+
+select
+PRODUCT_ID as PRODUCT_KEY,
+PRODUCT_ID,
+PRODUCT_NAME,
+UNIT_PRICE,
+DESCRIPTION
+FROM {{ source('oliver_landing', 'dim_product') }}
 ```
 
 - Save the file and build the model. Go to Snowflake to see the newly created table!
@@ -121,8 +195,21 @@
 - Create a new file inside of the oliver directory called `oliver_dim_store.sql`
 - Populate the code that we will use in this file below: 
 ```
+{{ config(
+    materialized = 'table',
+    schema = 'dw_oliver'
+    )
+}}
 
 
+select
+store_id as store_key,
+store_id,
+store_name,
+street,
+city,
+STATE
+FROM {{ source('oliver_landing', 'dim_store') }}
 ```
 
 - Save the file and build the model. Go to Snowflake to see the newly created table!
@@ -132,8 +219,27 @@
 - Create a new file inside of the oliver directory called `fact_sales.sql`
 - Populate the code that we will use in this file below: 
 ```
+{{ config(
+    materialized = 'table',
+    schema = 'dw_oliver'
+    )
+}}
 
-
+SELECT
+    o.orders_key,
+    l.order_line_key,
+    c.customer_key,
+    e.employee_key,
+    s.store_key,
+    d.date_key,
+    o.total_amount,
+    l.quantity
+FROM {{ source('oliver_landing', 'dim_orders') }} o
+LEFT JOIN {{ ref('oliver_dim_order_line') }} l ON o.order_id = l.order_id
+LEFT JOIN {{ ref('oliver_dim_customer') }} c ON o.customer_id = c.customer_key
+LEFT JOIN {{ ref('oliver_dim_employee') }} e ON o.employee_id = e.employee_key
+LEFT JOIN {{ ref('oliver_dim_store') }} s ON o.store_id = s.store_key
+LEFT JOIN {{ ref('oliver_dim_date') }} d ON d.date_key = o.order_date
 ```
 
 - Save the file and build the model. Go to Snowflake to see the newly created table!
@@ -145,7 +251,25 @@
 - This file contains metadata about the models you build. Hint: check out the exercise to help you create this file. 
 - Populate the code that we will use in this file below: 
 ```
+version: 2
 
+models:
+  - name: dioliver_dim_customer
+    description: "Oliver Customer Dimension"
+  - name: oliver_dim_date
+    description: "Date Dimension"
+  - name: oliver_dim_employee
+    description: "Oliver Employee Dimension"
+  - name: oliver_dim_order_line
+    description: "Oliver Order Line Dimension"
+  - name: Oliver_dim_orders
+    description: "Oliver Order Dimension"
+  - name: Oliver_dim_product
+    description: "Oliver Product Dimension"
+  - name: Oliver_dim_store
+    description: "Oliver Store Dimension"
+  - name: Oliver_fact_sales
+    description: "Oliver sale Fact"
 ```
 
 ## Create a semantic layer model (2 points of EC!)
