@@ -1,128 +1,57 @@
-# Core #5 Instructions #
-# JR Hyde #
-## Objective ##
-- In this assignment, students will practice their fundamental dimensional modeling skills and ELT by creating and populating a star schema for a given business process and relational database.
-- For context, Core #3, #4, and #5 all build upon each other. 
-     - Core #3: You created a draft dimensional model in LucidChart based on a given business process and transaction. 
-     - Core #4: You will populate your draft dimensional model (and act upon any feedback received) from a dataset provided to you via a file. 
-     - Core #5: You will Airbyte to pull in all of Oliver’s relational database data from SQL Server and then use dbt to transform and populate our final dimensional model. 
--HINT! The dbt exercise we completed in class will be EXTREMELY helpful as you complete the assignment. 
-
-## Background & Data ##
-- Oliver’s sweets and drinks serves a variety of products, including coffee, a variety of sodas, popcorn, and other tasty treats. Oliver’s currently has a transactional database system to track all store purchases across their 10 stores. They are now interested in developing a data warehouse using dimensional modeling (star schema) to improve their data analysis capabilities.  You will be modeling the point-of-sale business process at Oliver’s. You have already created a sample dimensional model and populated it for Oliver’s by uploading files of data. Now, after creating the dimensional model and showing it to Oliver’s data team, they have settled on the below dimensional model design. 
-![alt text](oliverdimmodel.png)
-
-- Oliver’s transaction data is stored in the 5360_Oliver database. Access this database by using the following credentials:
-     - Username: 5360_student
-     - Password: datawarehousing
-
-
-## Assignment ##
-- Now, we are going to use a semi-normalized transactional database given to us by Oliver's. You are very familiar with this dataset! You are going to create an ELT process for Oliver's using Airbyte & dbt. Download this markdown file and open it in VSCode, then populate the empty "code" boxes below with the code you use to complete this assignment. Then, submit this markdown file in Canvas. All teammates should complete the assignment in their own database, but you can troubleshoot together! Also, submit proof the data loaded in your Snowflake database (this can be a screenshot/query output).
-### Extract and Load (Airbyte) ###
-- Ensure that you are connected to the University VPN
-- Open the Docker application
-- Start Airbyte by opening a terminal and running the following (you may be able to just click the local host link below instead of running the following):
-``` cd airbyte ```
-``` ./run-ab-platform.sh ```
-- Open up a browser and go to http://localhost:8000. It can take a while for the Airbyte service to start, so don't be surprised if it takes ~10 minutes.
-    - Username: airbyte
-    - Password: password
-- Click `Set up a new source`
-- When defining a source, select `Microsoft SQL Server (MSSQL)`
-    - Host: `stairway.usu.edu`
-    - Port: `1433`
-    - Database: `5360_oliver`
-    - Username: `5360_student`
-    - Password: `datawarehousing` (you'll need to click the dropdown for optional fields)
-- Select `Scan Changes with User Defined Cursor`
-- Click `Set up source`
-    - Airbyte will run a connection test on the source to make sure it is set up properly
-- Create a schema in your firstnamelastname database named `Oliver` and ensure you have a data warehouse named `lastname_wh`
-
-- Once Airbyte has run the connection test successfully, you will pick a destination, select `Pick a destination`.
-- Find and click on `Snowflake`
-    - Host: `https://rbb67081.snowflakecomputing.com` 
-    - Role: `TRAINING_ROLE` 
-    - Warehouse: `lastname_WH` 
-    - Database: `firstnamelastname` 
-    - Schema: `Oliver` (create this schema in your firstnamelastname database)
-    - Username: 
-    - Authorization Method: `Username and Password`
-    - Password: 
-    - Click `Set up destination`
-- Once the connection test passes, it will pull up the new connection window
-    - Change schedule type to `Manual`
-    - Under `Activate the streams you want to sync`, click the button next to each table.
-    - Click Set up connection
-    - Click `Sync now`
-    - Once it's done, go to Snowflake and verify that you see data in the landing database
+# Sam's Sub Final Project Deliverable 3 #
+# Group 1 #
 
 ### Transform (dbt) ###
-- Open VSCode
-- File > Open > Select your project (lastname_DW)
-- On the top bar of the application, select Terminal > New Terminal
-    - This will open a terminal in the directory of your project within VSCode
-- Right click on the models directory and create a new folder inside of it. (Be careful not to create it inside of the example directory.)
-- Call this new folder `oliver`
-- Right click on oliver and create a new file. Name this file `_src_oliver.yml`
-    - In this file we will add all of the sources for Oliver's tables
-- Populate the code that we will use in this file below: 
+- Right click on sandwich and create a new file. Name this file `_src_sandwich.yml
+- this file will have all the sources from the sanwich_staging airbyte tables.
+
 ```
 version: 2
 
 sources:
-  - name: oliver_landing
-    database: jrhyde
-    schema: oliverdw_manual
+  - name: sandwich_staging
+    database: group1project
+    schema: sandwich_staging
     tables:
-      - name: dim_customer
-      - name: dim_date
-      - name: dim_employee
-      - name: dim_product
-      - name: dim_store
-      - name: dim_orders
-      - name: dim_order_line
+      - name: customers
+      - name: employees
+      - name: orders 
+      - name: products
+      - name: sandwiches
+      - name: stores
+      - name: supplier
+      - name: orderlines
+      - name: inventory    
 ```
 
-- If you need to make any changes to your Snowflake information in your dbt project you can change it by going to your dbt profile.yml file. You may need to change the schema. 
-    - On a mac, this is located under your user directory. You have to click Shift + command + . in order to see hidden folders. The .dbt folder will appear and inside is profiles.yml
-    - On Windows, it's just in the user directory under the .dbt folder and the profiles.yml is inside.
-    - Once you have found the profiles.yml file you can open in a text editor, change the needed parameters and save the file. 
+#### dim_customer ####
+- Create a new file inside of the sandwich model called `dim_customer.sql`
 
-
-#### dim customer ####
-- Create a new file inside of the oliver directory called `oliver_dim_customer.sql`
-- Populate the code that we will use in this file below: 
 ```
 {{ config(
     materialized = 'table',
-    schema = 'dw_oliver'
+    schema = 'sandwich'
     )
 }}
 
 
-select
-CUSTOMER_ID as customer_key,
-CUSTOMER_ID,
-FIRST_NAME,
-LAST_NAME,
-EMAIL,
-PHONE_NUMBER,
-STATE
-FROM {{ source('oliver_landing', 'dim_customer') }}
+SELECT
+customer_id as customer_key,
+customer_id,
+customer_phone as phone,
+customer_birthdate as birthdate,
+customer_last_name as last_name,
+customer_first_name as first_name
+
+FROM {{ source('sandwich_staging', 'customers') }}
 ```
 
-- Save the file, after you have done that, you can go to your terminal and type `dbt run -m oliver_dim_customer` to build the model.
-    - Go to Snowflake to see the newly created table!
-
-#### dim date ####
-- Create a new file inside of the oliver directory called `oliver_dim_date.sql`
-- Populate the code that we will use in this file below: 
+#### dim_date ####
+- Create a new file inside of the sandwich model called `dim_date.sql`
 ```
 {{ config(
     materialized = 'table',
-    schema = 'dw_oliver'
+    schema = 'sandwich'
     )
 }}
 
@@ -132,154 +61,287 @@ with cte_date as (
 
 SELECT
 date_day as date_key,
-date_day as date_id,
+date_day,
+day_of_week,
 month_of_year as month,
-year_number,
-quarter_of_year as quarter
+quarter_of_year as quarter,
+year_number as year
 from cte_date
 ```
 
-- Save the file, after you have done that, you can go to your terminal and type `dbt run -m oliver_dim_date` to build the model. Go to Snowflake to see the newly created table!
-
 #### dim_employee ####
-- Create a new file inside of the oliver directory called `oliver_dim_employee.sql`
-- Populate the code that we will use in this file below: 
+- Create a new file inside of the sandwich model called `dim_employee.sql`
+  
 ```
 {{ config(
     materialized = 'table',
-    schema = 'dw_oliver'
+    schema = 'sandwich'
     )
 }}
 
-
-select
-EMPLOYEE_ID as EMPLOYEE_KEY,
-EMPLOYEE_ID,
-FIRST_NAME,
-LAST_NAME,
-EMAIL,
-PHONE_NUMBER,
-HIRE_DATE,
-POSITION
-FROM {{ source('oliver_landing', 'dim_employee') }}
-```
-
-- Save the file and build the model. Go to Snowflake to see the newly created table! 
-
-#### dim product ####
-- Create a new file inside of the oliver directory called `oliver_dim_product.sql`
-- Populate the code that we will use in this file below: 
-
-
-```
-{{ config(
-    materialized = 'table',
-    schema = 'dw_oliver'
-    )
-}}
-
-
-select
-PRODUCT_ID as PRODUCT_KEY,
-PRODUCT_ID,
-PRODUCT_NAME,
-UNIT_PRICE,
-DESCRIPTION
-FROM {{ source('oliver_landing', 'dim_product') }}
-```
-
-- Save the file and build the model. Go to Snowflake to see the newly created table!
-
-
-#### dim store ####
-- Create a new file inside of the oliver directory called `oliver_dim_store.sql`
-- Populate the code that we will use in this file below: 
-```
-{{ config(
-    materialized = 'table',
-    schema = 'dw_oliver'
-    )
-}}
-
-
-select
-store_id as store_key,
-store_id,
-store_name,
-street,
-city,
-STATE
-FROM {{ source('oliver_landing', 'dim_store') }}
-```
-
-- Save the file and build the model. Go to Snowflake to see the newly created table!
-
-
-#### fact sales ####
-- Create a new file inside of the oliver directory called `fact_sales.sql`
-- Populate the code that we will use in this file below: 
-```
-{{ config(
-    materialized = 'table',
-    schema = 'dw_oliver'
-    )
-}}
 
 SELECT
-    o.orders_key,
-    l.order_line_key,
-    c.customer_key,
-    e.employee_key,
-    s.store_key,
-    d.date_key,
-    o.total_amount,
-    l.quantity
-FROM {{ source('oliver_landing', 'dim_orders') }} o
-LEFT JOIN {{ ref('oliver_dim_order_line') }} l ON o.order_id = l.order_id
-LEFT JOIN {{ ref('oliver_dim_customer') }} c ON o.customer_id = c.customer_key
-LEFT JOIN {{ ref('oliver_dim_employee') }} e ON o.employee_id = e.employee_key
-LEFT JOIN {{ ref('oliver_dim_store') }} s ON o.store_id = s.store_key
-LEFT JOIN {{ ref('oliver_dim_date') }} d ON d.date_key = o.order_date
+employee_id as employee_key,
+employee_id,
+employee_birthdate as birthdate,
+employee_last_name as last_name,
+employee_first_name as first_name
+
+FROM {{ source('sandwich_staging', 'employees') }}
 ```
 
-- Save the file and build the model. Go to Snowflake to see the newly created table!
+#### dim inventory ####
+- Create a new file inside of the sandwich model called `dim_inventory.sql`
+
+```
+{{ config(
+    materialized = 'table',
+    schema = 'sandwich'
+    )
+}}
 
 
+SELECT
+inventory_id as inventory_key,
+inventory_id,
+order_date,
+product_id,
+store_id,
+supplier_id,
+quantity_order,
+product_cost
+
+FROM {{ source('sandwich_staging', 'inventory') }}
+```
+
+#### dim_orderlines ####
+- Create a new file inside of the sandwich model called `dim_orderlines.sql`
+
+```
+{{ config(
+    materialized = 'table',
+    schema = 'sandwich'
+    )
+}}
+
+
+SELECT
+order_line_id as order_line_key,
+order_line_id,
+product_id,
+order_number as order_id,
+order_line_qty as quantity,
+order_line_price as price
+
+FROM {{ source('sandwich_staging', 'orderlines') }}
+```
+
+#### dim_orders ####
+- Create a new file inside of the sandwich model called `dim_orders.sql`
+  
+```
+{{ config(
+    materialized = 'table',
+    schema = 'sandwich'
+    )
+}}
+
+
+SELECT
+order_number as order_key,
+order_number as order_id,
+order_date,
+store_id,
+customer_id,
+employee_id,
+order_method,
+order_total_price,
+order_points_earned
+
+FROM {{ source('sandwich_staging', 'orders') }}
+```
+#### dim_products ####
+- Create a new file inside of the sandwich model called `dim_products.sql`
+ 
+```
+{{ config(
+    materialized = 'table',
+    schema = 'sandwich'
+    )
+}}
+
+
+SELECT
+product_id as product_key,
+product_id,
+sandwich_id,
+product_name as name,
+product_cost as cost,
+product_type as type,
+product_calories as calories
+
+FROM {{ source('sandwich_staging', 'products') }}
+```
+#### dim_sandwich ####
+- Create a new file inside of the sandwich model called `dim_sandwich.sql`
+ 
+```
+{{ config(
+    materialized = 'table',
+    schema = 'sandwich'
+    )
+}}
+
+
+SELECT
+sandwich_id as sandwich_key,
+sandwich_id,
+sandwich_length as lenght,
+sandwich_bread_type as bread_type
+
+FROM {{ source('sandwich_staging', 'sandwiches') }}
+```
+#### dim_stores ####
+- Create a new file inside of the sandwich model called `dim_stores.sql`
+ 
+```
+{{ config(
+    materialized = 'table',
+    schema = 'sandwich'
+    )
+}}
+
+
+SELECT
+store_id as store_key,
+store_id,
+store_zip as zip,
+store_city as city,
+store_state as state,
+store_address as address
+
+FROM {{ source('sandwich_staging', 'stores') }}
+```
+
+#### dim_supplier ####
+- Create a new file inside of the sandwich model called `dim_supplier.sql`
+  
+```
+{{ config(
+    materialized = 'table',
+    schema = 'sandwich'
+    )
+}}
+
+
+SELECT
+supplier_id as supplier_key,
+supplier_id,
+supplier_name as name,
+supplier_state as state,
+supplier_phone as phone
+
+FROM {{ source('sandwich_staging', 'supplier') }}
+```
+
+#### fact_sales ####
+- Create a new file inside of the sandwich model called `fact_sales.sql`
+
+```
+{{ config(
+    materialized = 'table',
+    schema = 'sandwich'
+) }}
+
+SELECT
+l.order_line_id as sales_key,
+l.order_line_id,
+c.customer_key,
+d.date_key,
+e.employee_key,
+o.order_key,
+p.product_key,
+s.store_key,
+CASE WHEN l.product_id = p.product_id THEN l.order_line_qty else 0 end as quantity,
+CASE WHEN l.product_id = p.product_id THEN p.cost end  as price
+
+FROM {{ source('sandwich_staging', 'orderlines') }} l
+LEFT JOIN {{ ref('dim_orders') }} o ON l.order_number = o.order_id
+LEFT JOIN {{ ref('dim_products') }} p ON l.product_id = p.product_id
+LEFT JOIN {{ ref('dim_customers') }} c ON o.customer_id = c.customer_id
+LEFT JOIN {{ ref('dim_date') }} d ON o.order_date = d.date_day
+LEFT JOIN {{ ref('dim_employees') }} e ON o.employee_id = e.employee_id
+LEFT JOIN {{ ref('dim_stores') }} s ON o.store_id = s.store_id
+```
+#### fact_inventory ####
+- Create a new file inside of the sandwich model called `fact_inventory.sql`
+ 
+```
+{{ config(
+    materialized = 'table',
+    schema = 'sandwich'
+) }}
+
+SELECT
+    i.inventory_id AS inventory_key,
+    i.inventory_id AS ordered_inventory_key,
+    p.product_key,
+    d.date_key,
+    s.store_key,
+    ss.supplier_key,
+    (SUM(CASE WHEN l.product_id = i.product_id THEN l.order_line_qty ELSE 0 END) - 50) AS quantity_on_hand,
+    (SUM(CASE WHEN l.product_id = i.product_id THEN l.order_line_qty ELSE 0 END)) AS quantity_sold,
+    i.quantity_order,
+    i.product_cost AS inventory_cost
+
+FROM {{ source('sandwich_staging', 'inventory') }} i
+LEFT JOIN {{ ref('dim_date') }} d ON d.date_day = i.order_date
+LEFT JOIN {{ ref('dim_products') }} p ON i.product_id = p.product_id
+LEFT JOIN {{ ref('dim_stores') }} s ON i.store_id = s.store_id
+LEFT JOIN {{ ref('dim_supplier') }} ss ON i.supplier_id = ss.supplier_id
+LEFT JOIN {{ source('sandwich_staging', 'orderlines') }} l ON l.product_id = i.product_id
+
+GROUP BY
+    i.inventory_id,
+    d.date_key,
+    s.store_key,
+    p.product_key,
+    ss.supplier_key,
+    i.quantity_order,
+    i.product_cost
+
+```
 
 #### schema yaml file ####
-- Create a new file inside the oliver directory called `_schema_oliver.yml`
-- This file contains metadata about the models you build. Hint: check out the exercise to help you create this file. 
+- Create a new file inside the sandwich model called `_schema_sandwich.yml`
+- This file contains metadata about the models you build
 - Populate the code that we will use in this file below: 
 ```
 version: 2
 
 models:
-  - name: dioliver_dim_customer
-    description: "Oliver Customer Dimension"
-  - name: oliver_dim_date
-    description: "Date Dimension"
-  - name: oliver_dim_employee
-    description: "Oliver Employee Dimension"
-  - name: oliver_dim_order_line
-    description: "Oliver Order Line Dimension"
-  - name: Oliver_dim_orders
-    description: "Oliver Order Dimension"
-  - name: Oliver_dim_product
-    description: "Oliver Product Dimension"
-  - name: Oliver_dim_store
-    description: "Oliver Store Dimension"
-  - name: Oliver_fact_sales
-    description: "Oliver sale Fact"
+     - name: dim_customer
+          description: "Customer Dimension"
+     - name: dim_date
+         description: "Date Dimension"
+     - name: dim_inventory
+         description: "Inventory Dimension"
+     - name: dim_orderlines
+         description: "Dimension"
+     - name: dim_orders
+         description: "Orders Dimension"
+     - name: dim_products
+         description: "Product Dimension"
+     - name: dim_sandwiches
+         description: "sandwiches Dimension"
+     - name: dim_stores
+         description: "Stores Dimension"
+     - name: dim_supplier
+         description: "Suppliers Dimension"
+     - name: fact_inventory
+         description: "Inventory fact"
+     - name: fact_claim
+         description: "Sales Fact"
 ```
 
-## Create a semantic layer model (2 points of EC!)
-- Create a model that can query from the data warehouse we just built and reference upstream models.
-- Create a new file called `sem_sales.sql` inside of the oliver directory.
-- Basically, your code will create a new table that will be a semantic layer that is easy for consumption. The table should include key information that an analyst could easily pull from to run quick analysis. 
-- This model should use 'ref' instead of source in the from statements. This will allow dbt to build lineage dag of the model dependencies:
-- Populate the code that we will use in this file below: 
-```
 
-```
-
-- In order to view lineage, the dbt power user extension must be installed. Click on the Lineage tab in vscode (down by the terminal on the bottom), if you are inside the sem_claims.sql model, you should be able to see lineage for that model. View the lineage for the other files in the model as well. 
